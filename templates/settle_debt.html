@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Settle Debt - {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-handshake me-2"></i>Settle Debt in {{ group.name }}</h4>
+                <small class="text-muted">Record a payment between group members</small>
+            </div>
+            <div class="card-body">
+                <!-- Current Balances Overview -->
+                <div class="mb-4">
+                    <h6>Current Balances:</h6>
+                    <div class="row">
+                        {% for user in group.users.values() %}
+                            {% set balance = group.balances[user.id] %}
+                            <div class="col-md-6 col-lg-4 mb-2">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                    <span>{{ user.name }}</span>
+                                    {% if balance > 0.01 %}
+                                        <span class="badge bg-danger">Owes {{ group.currency }}{{ "%.2f"|format(balance) }}</span>
+                                    {% elif balance < -0.01 %}
+                                        <span class="badge bg-success">Owed {{ group.currency }}{{ "%.2f"|format(-balance) }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Settled</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Simplified Settlements Suggestion -->
+                {% if simplified_debts %}
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Suggested Settlements (Simplified)</h6>
+                        <p class="mb-2">To settle all debts with minimum transactions:</p>
+                        {% for payer_id, payee_id, amount in simplified_debts %}
+                            {% set payer = group.users[payer_id] %}
+                            {% set payee = group.users[payee_id] %}
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span><strong>{{ payer.name }}</strong> should pay <strong>{{ payee.name }}</strong></span>
+                                <span class="badge bg-primary">{{ group.currency }}{{ "%.2f"|format(amount) }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Settlement Form -->
+                <form method="POST" id="settlementForm">
+                    <div class="row mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="payer" class="form-label">Who is paying? *</label>
+                            <select class="form-select" id="payer" name="payer" required>
+                                <option value="">Select payer</option>
+                                {% for user in group.users.values() %}
+                                    {% if group.balances[user.id] > 0.01 %}
+                                        <option value="{{ user.id }}" data-balance="{{ group.balances[user.id] }}">
+                                            {{ user.name }} (owes {{ group.currency }}{{ "%.2f"|format(group.balances[user.id]) }})
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Only users who owe money are shown</small>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="payee" class="form-label">Who is receiving payment? *</label>
+                            <select class="form-select" id="payee" name="payee" required>
+                                <option value="">Select recipient</option>
+                                {% for user in group.users.values() %}
+                                    {% if group.balances[user.id] < -0.01 %}
+                                        <option value="{{ user.id }}" data-balance="{{ group.balances[user.id] }}">
+                                            {{ user.name }} (owed {{ group.currency }}{{ "%.2f"|format(-group.balances[user.id]) }})
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Only users who are owed money are shown</small>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="amount" class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ group.currency }}</span>
+                                <input type="number" class="form-control" id="amount" name="amount" 
+                                       step="0.01" min="0.01" required>
+                            </div>
+                            <small id="amountHelp" class="text-muted">Maximum amount will be calculated</small>
+                        </div>
+                    </div>
+
+                    <!-- Settlement Preview -->
+                    <div id="settlementPreview" class="mb-4" style="display: none;"></div>
+
+                    <!-- Quick Settlement Buttons -->
+                    <div id="quickSettlement" class="mb-4" style="display: none;">
+                        <h6>Quick Settlement Options:</h6>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setMaxAmount()">
+                                Pay Maximum
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setHalfAmount()">
+                                Pay Half
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('group_detail', group_id=group.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-handshake me-2"></i>Record Settlement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Settlements -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Settlement History</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">No settlement history yet</h6>
+                    <p class="text-muted">Settlements will appear here after they are recorded</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const payerSelect = document.getElementById('payer');
+    const payeeSelect = document.getElementById('payee');
+    const amountInput = document.getElementById('amount');
+    const amountHelp = document.getElementById('amountHelp');
+    const settlementPreview = document.getElementById('settlementPreview');
+    const quickSettlement = document.getElementById('quickSettlement');
+    const groupCurrency = '{{ group.currency }}';
+    
+    let maxAmount = 0;
+    
+    // Update calculations when payer or payee changes
+    payerSelect.addEventListener('change', updateSettlementCalculation);
+    payeeSelect.addEventListener('change', updateSettlementCalculation);
+    amountInput.addEventListener('input', updatePreview);
+    
+    function updateSettlementCalculation() {
+        const payerOption = payerSelect.selectedOptions[0];
+        const payeeOption = payeeSelect.selectedOptions[0];
+        
+        if (payerOption && payeeOption) {
+            const payerBalance = parseFloat(payerOption.dataset.balance) || 0;
+            const payeeBalance = parseFloat(payeeOption.dataset.balance) || 0;
+            
+            // Maximum amount is the minimum of what payer owes and what payee is owed
+            maxAmount = Math.min(payerBalance, Math.abs(payeeBalance));
+            
+            amountInput.max = maxAmount.toFixed(2);
+            amountHelp.textContent = `Maximum: ${groupCurrency}${maxAmount.toFixed(2)}`;
+            
+            quickSettlement.style.display = 'block';
+            updatePreview();
+        } else {
+            quickSettlement.style.display = 'none';
+            settlementPreview.style.display = 'none';
+            amountHelp.textContent = 'Maximum amount will be calculated';
+        }
+    }
+    
+    function updatePreview() {
+        const payerOption = payerSelect.selectedOptions[0];
+        const payeeOption = payeeSelect.selectedOptions[0];
+        const amount = parseFloat(amountInput.value) || 0;
+        
+        if (payerOption && payeeOption && amount > 0) {
+            const payerName = payerOption.textContent.split(' (')[0];
+            const payeeName = payeeOption.textContent.split(' (')[0];
+            const payerBalance = parseFloat(payerOption.dataset.balance) || 0;
+            const payeeBalance = parseFloat(payeeOption.dataset.balance) || 0;
+            
+            if (amount > maxAmount + 0.01) {
+                settlementPreview.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Invalid Amount!</strong> 
+                        Maximum settleable amount is ${groupCurrency}${maxAmount.toFixed(2)}
+                    </div>
+                `;
+            } else {
+                const newPayerBalance = payerBalance - amount;
+                const newPayeeBalance = payeeBalance + amount;
+                
+                settlementPreview.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-preview me-2"></i>Settlement Preview</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>${payerName}</strong><br>
+                                Current: owes ${groupCurrency}${payerBalance.toFixed(2)}<br>
+                                After: ${newPayerBalance > 0.01 ? 
+                                    `owes ${groupCurrency}${newPayerBalance.toFixed(2)}` : 
+                                    newPayerBalance < -0.01 ? 
+                                        `owed ${groupCurrency}${Math.abs(newPayerBalance).toFixed(2)}` : 
+                                        'settled'
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <strong>${payeeName}</strong><br>
+                                Current: owed ${groupCurrency}${Math.abs(payeeBalance).toFixed(2)}<br>
+                                After: ${newPayeeBalance < -0.01 ? 
+                                    `owed ${groupCurrency}${Math.abs(newPayeeBalance).toFixed(2)}` : 
+                                    newPayeeBalance > 0.01 ? 
+                                        `owes ${groupCurrency}${newPayeeBalance.toFixed(2)}` : 
+                                        'settled'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            settlementPreview.style.display = 'block';
+        } else {
+            settlementPreview.style.display = 'none';
+        }
+    }
+    
+    // Quick settlement functions
+    window.setMaxAmount = function() {
+        amountInput.value = maxAmount.toFixed(2);
+        updatePreview();
+    };
+    
+    window.setHalfAmount = function() {
+        amountInput.value = (maxAmount / 2).toFixed(2);
+        updatePreview();
+    };
+});
+
+// Form validation
+document.getElementById('settlementForm').addEventListener('submit', function(e) {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const payer = document.getElementById('payer').value;
+    const payee = document.getElementById('payee').value;
+    
+    if (!payer || !payee) {
+        e.preventDefault();
+        alert('Please select both payer and recipient.');
+        return;
+    }
+    
+    if (payer === payee) {
+        e.preventDefault();
+        alert('Payer and recipient cannot be the same person.');
+        return;
+    }
+    
+    if (amount <= 0) {
+        e.preventDefault();
+        alert('Please enter a valid amount.');
+        return;
+    }
+    
+    // Additional validation is handled on the server side
+});
+</script>
+{% endblock %}

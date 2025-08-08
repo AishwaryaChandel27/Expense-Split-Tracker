@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - Group Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Group Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="fas fa-users me-2"></i>{{ group.name }}</h1>
+                {% if group.description %}
+                    <p class="text-muted">{{ group.description }}</p>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('add_expense', group_id=group.id) }}" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>Add Expense
+                </a>
+                <a href="{{ url_for('settle_debt', group_id=group.id) }}" class="btn btn-warning">
+                    <i class="fas fa-handshake me-2"></i>Settle Debt
+                </a>
+            </div>
+        </div>
+
+        <!-- Group Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="text-primary">{{ group.users|length }}</h5>
+                        <p class="text-muted mb-0">Members</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="text-info">{{ group.expenses|length }}</h5>
+                        <p class="text-muted mb-0">Expenses</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="text-success">{{ group.currency }}{{ "%.2f"|format(group.expenses|map(attribute='amount')|sum) }}</h5>
+                        <p class="text-muted mb-0">Total Spent</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="text-warning">{{ simplified_debts|length }}</h5>
+                        <p class="text-muted mb-0">Payments Needed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Balances & Simplified Debts -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-balance-scale me-2"></i>User Balances</h5>
+            </div>
+            <div class="card-body">
+                {% for user in group.users.values() %}
+                    {% set balance = group.balances[user.id] %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <strong>{{ user.name }}</strong>
+                            {% if user.email %}
+                                <br><small class="text-muted">{{ user.email }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if balance > 0.01 %}
+                                <span class="badge bg-danger">Owes {{ group.currency }}{{ "%.2f"|format(balance) }}</span>
+                            {% elif balance < -0.01 %}
+                                <span class="badge bg-success">Owed {{ group.currency }}{{ "%.2f"|format(-balance) }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Settled</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Simplified Debts -->
+        {% if simplified_debts %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-exchange-alt me-2"></i>Simplified Settlements</h5>
+                    <small class="text-muted">Minimum transactions to settle all debts</small>
+                </div>
+                <div class="card-body">
+                    {% for payer_id, payee_id, amount in simplified_debts %}
+                        {% set payer = group.users[payer_id] %}
+                        {% set payee = group.users[payee_id] %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <strong>{{ payer.name }}</strong> pays <strong>{{ payee.name }}</strong>
+                            </div>
+                            <span class="badge bg-primary">{{ group.currency }}{{ "%.2f"|format(amount) }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-receipt me-2"></i>Recent Expenses</h5>
+                <a href="{{ url_for('add_expense', group_id=group.id) }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus me-1"></i>Add
+                </a>
+            </div>
+            <div class="card-body">
+                {% if group.expenses %}
+                    {% for expense in group.expenses[:10] %}
+                        {% set payer = group.users[expense.paid_by_user_id] %}
+                        <div class="d-flex justify-content-between align-items-start py-3 border-bottom">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ expense.description }}</h6>
+                                <small class="text-muted">
+                                    Paid by <strong>{{ payer.name }}</strong> • 
+                                    {{ expense.created_at.strftime('%b %d, %Y') }} •
+                                    <span class="badge badge-sm bg-info">{{ expense.split_type.value.title() }} Split</span>
+                                </small>
+                                
+                                <!-- Show split details -->
+                                <div class="mt-2">
+                                    <small class="text-muted">Split among:</small>
+                                    {% for user_id, amount in expense.user_shares.items() %}
+                                        {% set user = group.users[user_id] %}
+                                        <div class="d-flex justify-content-between">
+                                            <small>{{ user.name }}</small>
+                                            <small>{{ group.currency }}{{ "%.2f"|format(amount) }}</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="text-end ms-3">
+                                <h6 class="text-success">{{ group.currency }}{{ "%.2f"|format(expense.amount) }}</h6>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    {% if group.expenses|length > 10 %}
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Showing 10 of {{ group.expenses|length }} expenses</small>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No expenses yet</h6>
+                        <p class="text-muted">Add your first expense to get started!</p>
+                        <a href="{{ url_for('add_expense', group_id=group.id) }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add First Expense
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Form -->
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-plus me-2"></i>Add New Member</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_user_to_group', group_id=group.id) }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email (Optional)</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i>Add Member
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh balances every 30 seconds
+setInterval(function() {
+    window.location.reload();
+}, 30000);
+</script>
+{% endblock %}

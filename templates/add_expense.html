@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense - {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-plus me-2"></i>Add New Expense to {{ group.name }}</h4>
+                <small class="text-muted">Split an expense among group members</small>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="expenseForm">
+                    <!-- Basic Expense Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label for="description" class="form-label">Description *</label>
+                            <input type="text" class="form-control" id="description" name="description" 
+                                   placeholder="e.g., Dinner, Groceries, Gas" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="amount" class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ group.currency }}</span>
+                                <input type="number" class="form-control" id="amount" name="amount" 
+                                       step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="paid_by" class="form-label">Paid By *</label>
+                            <select class="form-select" id="paid_by" name="paid_by" required>
+                                <option value="">Select payer</option>
+                                {% for user in group.users.values() %}
+                                    <option value="{{ user.id }}">{{ user.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Split Type Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">Split Type *</label>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check form-check-card">
+                                    <input class="form-check-input" type="radio" name="split_type" 
+                                           id="equal_split" value="equal" checked>
+                                    <label class="form-check-label w-100" for="equal_split">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-equals fa-2x text-primary mb-2"></i>
+                                                <h6>Equal Split</h6>
+                                                <small class="text-muted">Split equally among all</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check form-check-card">
+                                    <input class="form-check-input" type="radio" name="split_type" 
+                                           id="exact_split" value="exact">
+                                    <label class="form-check-label w-100" for="exact_split">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-calculator fa-2x text-info mb-2"></i>
+                                                <h6>Exact Amount</h6>
+                                                <small class="text-muted">Specify exact amounts</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check form-check-card">
+                                    <input class="form-check-input" type="radio" name="split_type" 
+                                           id="percentage_split" value="percentage">
+                                    <label class="form-check-label w-100" for="percentage_split">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
+                                                <h6>Percentage</h6>
+                                                <small class="text-muted">Split by percentage</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Equal Split Section -->
+                    <div id="equal_section" class="split-section">
+                        <h6><i class="fas fa-users me-2"></i>Select Users for Equal Split</h6>
+                        <div class="row">
+                            {% for user in group.users.values() %}
+                                <div class="col-md-6 col-lg-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               id="equal_user_{{ user.id }}" name="equal_users" value="{{ user.id }}">
+                                        <label class="form-check-label" for="equal_user_{{ user.id }}">
+                                            {{ user.name }}
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="selectAllUsers('equal')">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllUsers('equal')">
+                                Clear All
+                            </button>
+                        </div>
+                        <div id="equal_preview" class="mt-3"></div>
+                    </div>
+
+                    <!-- Exact Split Section -->
+                    <div id="exact_section" class="split-section" style="display: none;">
+                        <h6><i class="fas fa-calculator me-2"></i>Specify Exact Amounts</h6>
+                        <div class="row">
+                            {% for user in group.users.values() %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="exact_{{ user.id }}" class="form-label">{{ user.name }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">{{ group.currency }}</span>
+                                        <input type="number" class="form-control exact-amount" 
+                                               id="exact_{{ user.id }}" name="exact_{{ user.id }}" 
+                                               step="0.01" min="0" data-user="{{ user.name }}">
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div id="exact_preview" class="mt-3"></div>
+                    </div>
+
+                    <!-- Percentage Split Section -->
+                    <div id="percentage_section" class="split-section" style="display: none;">
+                        <h6><i class="fas fa-percentage me-2"></i>Specify Percentages</h6>
+                        <div class="row">
+                            {% for user in group.users.values() %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="percentage_{{ user.id }}" class="form-label">{{ user.name }}</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control percentage-amount" 
+                                               id="percentage_{{ user.id }}" name="percentage_{{ user.id }}" 
+                                               step="0.01" min="0" max="100" data-user="{{ user.name }}">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div id="percentage_preview" class="mt-3"></div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('group_detail', group_id=group.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add Expense
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const splitTypeRadios = document.querySelectorAll('input[name="split_type"]');
+    const amountInput = document.getElementById('amount');
+    const groupCurrency = '{{ group.currency }}';
+    
+    // Handle split type changes
+    splitTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            showSplitSection(this.value);
+        });
+    });
+    
+    // Handle amount changes for previews
+    amountInput.addEventListener('input', updatePreviews);
+    
+    // Handle exact amount inputs
+    document.querySelectorAll('.exact-amount').forEach(input => {
+        input.addEventListener('input', updateExactPreview);
+    });
+    
+    // Handle percentage inputs
+    document.querySelectorAll('.percentage-amount').forEach(input => {
+        input.addEventListener('input', updatePercentagePreview);
+    });
+    
+    // Handle equal split user selection
+    document.querySelectorAll('input[name="equal_users"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateEqualPreview);
+    });
+    
+    // Initialize
+    showSplitSection('equal');
+    updatePreviews();
+});
+
+function showSplitSection(type) {
+    document.querySelectorAll('.split-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    document.getElementById(type + '_section').style.display = 'block';
+    updatePreviews();
+}
+
+function selectAllUsers(type) {
+    document.querySelectorAll(`input[name="${type}_users"]`).forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updatePreviews();
+}
+
+function clearAllUsers(type) {
+    document.querySelectorAll(`input[name="${type}_users"]`).forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updatePreviews();
+}
+
+function updatePreviews() {
+    const activeType = document.querySelector('input[name="split_type"]:checked').value;
+    if (activeType === 'equal') updateEqualPreview();
+    else if (activeType === 'exact') updateExactPreview();
+    else if (activeType === 'percentage') updatePercentagePreview();
+}
+
+function updateEqualPreview() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const selectedUsers = document.querySelectorAll('input[name="equal_users"]:checked');
+    const preview = document.getElementById('equal_preview');
+    
+    if (amount > 0 && selectedUsers.length > 0) {
+        const splitAmount = amount / selectedUsers.length;
+        let html = '<div class="alert alert-info"><h6>Preview:</h6>';
+        selectedUsers.forEach(user => {
+            const userName = user.nextElementSibling.textContent;
+            html += `<div>${userName}: ${groupCurrency}${splitAmount.toFixed(2)}</div>`;
+        });
+        html += '</div>';
+        preview.innerHTML = html;
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+function updateExactPreview() {
+    const totalAmount = parseFloat(document.getElementById('amount').value) || 0;
+    const exactInputs = document.querySelectorAll('.exact-amount');
+    const preview = document.getElementById('exact_preview');
+    
+    let splitTotal = 0;
+    let hasValues = false;
+    let html = '<div class="alert alert-info"><h6>Preview:</h6>';
+    
+    exactInputs.forEach(input => {
+        const amount = parseFloat(input.value) || 0;
+        if (amount > 0) {
+            hasValues = true;
+            splitTotal += amount;
+            const userName = input.dataset.user;
+            html += `<div>${userName}: ${groupCurrency}${amount.toFixed(2)}</div>`;
+        }
+    });
+    
+    if (hasValues) {
+        html += `<hr><strong>Total Split: ${groupCurrency}${splitTotal.toFixed(2)}</strong>`;
+        if (totalAmount > 0) {
+            const difference = totalAmount - splitTotal;
+            if (Math.abs(difference) > 0.01) {
+                html += `<br><span class="text-${difference > 0 ? 'warning' : 'danger'}">
+                    Difference: ${groupCurrency}${Math.abs(difference).toFixed(2)} 
+                    ${difference > 0 ? 'remaining' : 'over'}
+                </span>`;
+            } else {
+                html += '<br><span class="text-success">Perfect match!</span>';
+            }
+        }
+        html += '</div>';
+        preview.innerHTML = html;
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+function updatePercentagePreview() {
+    const totalAmount = parseFloat(document.getElementById('amount').value) || 0;
+    const percentageInputs = document.querySelectorAll('.percentage-amount');
+    const preview = document.getElementById('percentage_preview');
+    
+    let percentageTotal = 0;
+    let hasValues = false;
+    let html = '<div class="alert alert-info"><h6>Preview:</h6>';
+    
+    percentageInputs.forEach(input => {
+        const percentage = parseFloat(input.value) || 0;
+        if (percentage > 0) {
+            hasValues = true;
+            percentageTotal += percentage;
+            const userName = input.dataset.user;
+            const amount = totalAmount * (percentage / 100);
+            html += `<div>${userName}: ${percentage}% = ${groupCurrency}${amount.toFixed(2)}</div>`;
+        }
+    });
+    
+    if (hasValues) {
+        html += `<hr><strong>Total Percentage: ${percentageTotal.toFixed(1)}%</strong>`;
+        if (Math.abs(percentageTotal - 100) > 0.1) {
+            html += `<br><span class="text-${percentageTotal < 100 ? 'warning' : 'danger'}">
+                ${percentageTotal < 100 ? 'Missing' : 'Over'} ${Math.abs(100 - percentageTotal).toFixed(1)}%
+            </span>`;
+        } else {
+            html += '<br><span class="text-success">Perfect 100%!</span>';
+        }
+        html += '</div>';
+        preview.innerHTML = html;
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+// Form validation
+document.getElementById('expenseForm').addEventListener('submit', function(e) {
+    const splitType = document.querySelector('input[name="split_type"]:checked').value;
+    
+    if (splitType === 'equal') {
+        const selectedUsers = document.querySelectorAll('input[name="equal_users"]:checked');
+        if (selectedUsers.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one user for the equal split.');
+            return;
+        }
+    } else if (splitType === 'exact') {
+        const totalAmount = parseFloat(document.getElementById('amount').value) || 0;
+        const exactInputs = document.querySelectorAll('.exact-amount');
+        let splitTotal = 0;
+        let hasValues = false;
+        
+        exactInputs.forEach(input => {
+            const amount = parseFloat(input.value) || 0;
+            if (amount > 0) {
+                hasValues = true;
+                splitTotal += amount;
+            }
+        });
+        
+        if (!hasValues) {
+            e.preventDefault();
+            alert('Please specify at least one exact amount.');
+            return;
+        }
+        
+        if (Math.abs(totalAmount - splitTotal) > 0.01) {
+            e.preventDefault();
+            alert(`The split amounts (${groupCurrency}${splitTotal.toFixed(2)}) don't match the total amount (${groupCurrency}${totalAmount.toFixed(2)}).`);
+            return;
+        }
+    } else if (splitType === 'percentage') {
+        const percentageInputs = document.querySelectorAll('.percentage-amount');
+        let percentageTotal = 0;
+        let hasValues = false;
+        
+        percentageInputs.forEach(input => {
+            const percentage = parseFloat(input.value) || 0;
+            if (percentage > 0) {
+                hasValues = true;
+                percentageTotal += percentage;
+            }
+        });
+        
+        if (!hasValues) {
+            e.preventDefault();
+            alert('Please specify at least one percentage.');
+            return;
+        }
+        
+        if (Math.abs(percentageTotal - 100) > 0.1) {
+            e.preventDefault();
+            alert(`The percentages must add up to 100%. Current total: ${percentageTotal.toFixed(1)}%`);
+            return;
+        }
+    }
+});
+</script>
+
+<style>
+.form-check-card .card {
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.form-check-card input:checked + label .card {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.form-check-card .card:hover {
+    border-color: var(--bs-primary);
+}
+
+.split-section {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background-color: var(--bs-body-bg);
+}
+</style>
+{% endblock %}

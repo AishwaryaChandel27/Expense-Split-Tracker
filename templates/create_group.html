@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Group - Expense Split Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-plus me-2"></i>Create New Group</h4>
+                <small class="text-muted">Start tracking shared expenses with friends, family, or colleagues</small>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Group Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="e.g., Trip to Paris, Office Lunch, Roommate Expenses" 
+                               required maxlength="100">
+                        <small class="text-muted">Choose a descriptive name for your group</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="3" maxlength="500"
+                                  placeholder="Brief description of what expenses this group will track..."></textarea>
+                        <small class="text-muted">Help members understand the purpose of this group</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="currency" class="form-label">Currency *</label>
+                        <select class="form-select" id="currency" name="currency" required>
+                            <option value="USD" selected>USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="JPY">JPY - Japanese Yen</option>
+                            <option value="CAD">CAD - Canadian Dollar</option>
+                            <option value="AUD">AUD - Australian Dollar</option>
+                            <option value="CHF">CHF - Swiss Franc</option>
+                            <option value="CNY">CNY - Chinese Yuan</option>
+                            <option value="INR">INR - Indian Rupee</option>
+                        </select>
+                        <small class="text-muted">All expenses in this group will be tracked in this currency</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Group
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="fas fa-info-circle me-2"></i>What happens next?</h6>
+                <ul class="mb-0">
+                    <li>Add members to your group</li>
+                    <li>Start adding shared expenses</li>
+                    <li>Track who owes what to whom</li>
+                    <li>Settle debts with optimized payment suggestions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on the name field
+    document.getElementById('name').focus();
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        
+        if (!name) {
+            e.preventDefault();
+            alert('Please enter a group name.');
+            document.getElementById('name').focus();
+            return;
+        }
+        
+        if (name.length < 2) {
+            e.preventDefault();
+            alert('Group name must be at least 2 characters long.');
+            document.getElementById('name').focus();
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}
