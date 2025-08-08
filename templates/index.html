@@ -37,13 +37,14 @@
                                     </div>
                                     <div class="col-4">
                                         <div class="border-end">
-                                            <h6 class="text-info">{{ group.expenses|length }}</h6>
+                                            <h6 class="text-info">{{ group.expenses.values()|length }}</h6>
                                             <small class="text-muted">Expenses</small>
                                         </div>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-success">
-                                            {{ group.currency }}{{ "%.2f"|format(group.expenses|map(attribute='amount')|sum) }}
+                                            {% set total_amount = group.expenses.values()|map(attribute='amount')|sum %}
+                                            {{ group.currency }}{{ "%.2f"|format(total_amount) }}
                                         </h6>
                                         <small class="text-muted">Total</small>
                                     </div>
@@ -53,11 +54,13 @@
                                 {% if group.expenses %}
                                     <div class="mb-3">
                                         <h6 class="text-muted mb-2">Recent Activity</h6>
-                                        {% for expense in group.expenses[:3] %}
+                                        {% for expense in group.expenses.values()|list|sort(attribute='created_at', reverse=True) %}
+                                            {% if loop.index <= 3 %}
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <small>{{ expense.description }}</small>
                                                 <small class="text-success">{{ group.currency }}{{ "%.2f"|format(expense.amount) }}</small>
                                             </div>
+                                            {% endif %}
                                         {% endfor %}
                                     </div>
                                 {% endif %}
@@ -143,7 +146,7 @@
                 <div class="col-md-3 col-sm-6 mb-3">
                     <div class="card text-center">
                         <div class="card-body">
-                            <h4 class="text-warning">{{ groups|map(attribute='expenses')|map('length')|sum }}</h4>
+                            <h4 class="text-warning">{{ groups|map(attribute='expenses')|map(attribute='values')|map('length')|sum }}</h4>
                             <p class="text-muted mb-0">Total Expenses</p>
                         </div>
                     </div>
@@ -152,7 +155,13 @@
                     <div class="card text-center">
                         <div class="card-body">
                             <h4 class="text-success">
-                                ${{ "%.2f"|format(groups|map(attribute='expenses')|map('list')|map('map', attribute='amount')|map('sum')|sum) }}
+                                {% set total_expenses = [] %}
+                                {% for group in groups %}
+                                    {% for expense in group.expenses.values() %}
+                                        {% set _ = total_expenses.append(expense.amount) %}
+                                    {% endfor %}
+                                {% endfor %}
+                                ${{ "%.2f"|format(total_expenses|sum) }}
                             </h4>
                             <p class="text-muted mb-0">Total Amount</p>
                         </div>

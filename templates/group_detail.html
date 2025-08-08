@@ -36,7 +36,7 @@
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card text-center">
                     <div class="card-body">
-                        <h5 class="text-info">{{ group.expenses|length }}</h5>
+                        <h5 class="text-info">{{ group.expenses.values()|length }}</h5>
                         <p class="text-muted mb-0">Expenses</p>
                     </div>
                 </div>
@@ -44,7 +44,7 @@
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card text-center">
                     <div class="card-body">
-                        <h5 class="text-success">{{ group.currency }}{{ "%.2f"|format(group.expenses|map(attribute='amount')|sum) }}</h5>
+                        <h5 class="text-success">{{ group.currency }}{{ "%.2f"|format(group.expenses.values()|map(attribute='amount')|sum) }}</h5>
                         <p class="text-muted mb-0">Total Spent</p>
                     </div>
                 </div>
@@ -126,7 +126,8 @@
             </div>
             <div class="card-body">
                 {% if group.expenses %}
-                    {% for expense in group.expenses[:10] %}
+                    {% for expense in group.expenses.values()|list|sort(attribute='created_at', reverse=True) %}
+                        {% if loop.index <= 10 %}
                         {% set payer = group.users[expense.paid_by_user_id] %}
                         <div class="d-flex justify-content-between align-items-start py-3 border-bottom">
                             <div class="flex-grow-1">
@@ -153,11 +154,12 @@
                                 <h6 class="text-success">{{ group.currency }}{{ "%.2f"|format(expense.amount) }}</h6>
                             </div>
                         </div>
+                        {% endif %}
                     {% endfor %}
                     
-                    {% if group.expenses|length > 10 %}
+                    {% if group.expenses.values()|length > 10 %}
                         <div class="text-center mt-3">
-                            <small class="text-muted">Showing 10 of {{ group.expenses|length }} expenses</small>
+                            <small class="text-muted">Showing 10 of {{ group.expenses.values()|length }} expenses</small>
                         </div>
                     {% endif %}
                 {% else %}
