@@ -1,0 +1,158 @@
+ Core Requirements
+Users can create groups:
+Allow users to form groups (e.g., a group for a trip or an event).
+Users can invite others to join the group.
+Add expenses with split logic:
+Users can add expenses to the group.
+Implement various ways of splitting the expense:
+Equal split: Divide the expense equally among all group members.
+Exact amount split: Assign a fixed amount to each user (e.g., User A
+pays $30, User B pays $20).
+Percentage split: Divide the expense based on a percentage (e.g.,
+User A pays 60%, User B pays 40%).
+Track balances between users:
+The system should track the amounts each user owes or is owed.
+Display a balance sheet for each user, showing the total amount owed and
+the total amount paid.
+Allow settling of debts:
+Allow users to settle their debts, either by direct payments or by marking
+the debt as settled.
+Ensure that once debts are settled, the system updates the balances
+accordingly.
+✅ Validations
+Check currency compatibility:
+Ensure that expenses are tracked in compatible currencies.
+
+Expense Split Tracker 1
+
+Validate that when users add expenses, the currencies match or the
+system can handle conversions automatically.
+Prevent invalid settlements:
+Ensure that users cannot pay more than what they owe.
+Implement checks that prevent settling more than the outstanding balance
+(e.g., a user cannot settle with more than their owed amount).
+🌟 Good to Have Features (Optional)
+1. Simplification of debts (Must-Have):
+Automatically simplify the debts in the group by finding ways to reduce the
+number of transactions. For example, if User A owes $30 and User B owes
+$20, automatically simplify it to a single transaction where User A owes
+$10 and User B owes $20 to User A.
+2. Transaction history:
+Implement a feature to track and view the history of all expenses and
+settlements within the group.
+Provide filters for users to search by date, expense type, or user.
+3. Simple Dashboard Demonstration via Postman:
+Rather than a UI, demonstrate the functionality of the Expense Split
+Tracker via a simple Postman collection. The API endpoints should allow:
+Creating groups.
+Adding expenses.
+Viewing balances.
+Settling debts.
+
+Example Test Cases
+Test Case 1: Equal Split of Expense
+
+Expense Split Tracker 2
+
+Scenario: A group of 3 users adds an expense of $90.
+Expected Result: The system should split the expense equally among the 3
+users ($30 each).
+python
+Copy
+def test_equal_split():
+group = create_group("Trip to Paris")
+user1 = add_user(group, "User1")
+user2 = add_user(group, "User2")
+user3 = add_user(group, "User3")
+expense = add_expense(group, amount=90, split_type="equal", users=[use
+r1, user2, user3])
+assert user1.balance == 30, "User1 should owe $30"
+assert user2.balance == 30, "User2 should owe $30"
+assert user3.balance == 30, "User3 should owe $30"
+
+Test Case 2: Exact Amount Split
+Scenario: A user adds an expense of $100, and User A pays $70, while User B
+pays $30.
+Expected Result: User A should be assigned $70 and User B should be
+assigned $30.
+python
+Copy
+def test_exact_amount_split():
+group = create_group("Dinner")
+user1 = add_user(group, "User1")
+user2 = add_user(group, "User2")
+expense = add_expense(group, amount=100, split_type="exact", amounts=
+
+Expense Split Tracker 3
+
+{user1: 70, user2: 30})
+assert user1.balance == 70, "User1 should owe $70"
+assert user2.balance == 30, "User2 should owe $30"
+
+Test Case 3: Percentage Split
+Scenario: A user adds an expense of $200, and the expense is split 60% for
+User A and 40% for User B.
+Expected Result: User A should owe $120, and User B should owe $80.
+python
+Copy
+def test_percentage_split():
+group = create_group("Shopping Trip")
+user1 = add_user(group, "User1")
+user2 = add_user(group, "User2")
+expense = add_expense(group, amount=200, split_type="percentage", per
+centages={user1: 60, user2: 40})
+assert user1.balance == 120, "User1 should owe $120"
+assert user2.balance == 80, "User2 should owe $80"
+
+Test Case 4: Settling Debt
+Scenario: User A owes $50 and settles the debt by paying $50.
+Expected Result: User A’s balance should be updated to 0 after the
+settlement.
+
+python
+Copy
+def test_settling_debt():
+
+Expense Split Tracker 4
+
+group = create_group("Trip to Goa")
+user1 = add_user(group, "User1")
+add_expense(group, amount=50, split_type="equal", users=[user1])
+settle_debt(user1, amount=50)
+assert user1.balance == 0, "User1's balance should be 0 after settlement"
+
+Test Case 5: Simplification of Debts
+Scenario: User A owes $30, User B owes $20. The system should simplify the
+debts so that User A owes $10 and User B owes $20 to User A.
+Expected Result: The debts should be simplified into fewer transactions,
+reducing the number of transfers between users.
+python
+Copy
+def test_simplify_debts():
+group = create_group("Trip to Goa")
+user1 = add_user(group, "User1")
+user2 = add_user(group, "User2")
+add_expense(group, amount=30, split_type="exact", amounts={user1: 30})
+add_expense(group, amount=20, split_type="exact", amounts={user2: 20})
+simplify_debts(group)
+# After simplification, User1 should owe $10 and User2 should owe $20 to U
+ser1
+assert user1.balance == 10, "User1 should owe $10 after simplification"
+assert user2.balance == -20, "User2 should owe $20 to User1 after simplifi
+
+Expense Split Tracker 5
+
+cation"
+
+Guidelines:
+Data Structures: Use appropriate data structures to store groups, users,
+expenses, and balances. Consider using dictionaries for quick lookups of user
+balances and expenses.
+Edge Cases: Handle scenarios like:
+Settling more than the owed amount.
+Invalid currency handling.
+Trying to add expenses for a non-existing group or user.
+Performance: Ensure that the system can handle large numbers of users and
+expenses efficiently.
+Testing: Write comprehensive tests for different split types, debt settlements,
+simplification of debts, and error handling. with proper file structure
