@@ -60,8 +60,7 @@ This application uses a **service-oriented architecture** with clear separation 
 #### Option 2: Local Installation
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd expense-split-tracker
+   git clone https://github.com/AishwaryaChandel27/Expense-Split-Tracker
    ```
 
 2. **Install dependencies**:
@@ -73,12 +72,7 @@ This application uses a **service-oriented architecture** with clear separation 
    - `flask`: Web framework
    - `gunicorn`: WSGI server for production
 
-3. **Set environment variables** (optional):
-   ```bash
-   export SESSION_SECRET="your-secret-key-here"
-   ```
-
-4. **Run the application**:
+3. **Run the application**:
    ```bash
    # Development mode
    python app.py
@@ -87,7 +81,7 @@ This application uses a **service-oriented architecture** with clear separation 
    gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
    ```
 
-5. **Access the application**:
+4. **Access the application**:
    Open your browser and navigate to `http://localhost:5000`
 
 ### Project Structure
