@@ -358,7 +358,7 @@ This project is open source and available under the MIT License.
 
 ## Loom Video Link
 
-[Demo Video: Expense Split Tracker Walkthrough](https://www.loom.com/share/your-video-id-here)
+[Demo Video: Expense Split Tracker Walkthrough](https://www.loom.com/share/7852b91619194b729ae87e66fcf77a36?sid=34df94e2-3651-417a-a3a2-5c3d128972b5)
 
 *Note: Video demonstrates group creation, expense addition with all split types, balance tracking, and debt simplification in action.*
 
