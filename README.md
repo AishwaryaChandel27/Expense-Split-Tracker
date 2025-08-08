@@ -1,4 +1,4 @@
-# Expense Split Tracker
+# Expense Split Tracker 
 
 A comprehensive web application for managing shared expenses among groups of users, similar to Splitwise. Built with Python Flask and featuring advanced debt simplification algorithms.
 
