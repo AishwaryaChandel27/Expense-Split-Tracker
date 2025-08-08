@@ -17,6 +17,52 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-prod
 # Initialize expense tracker (in-memory for this implementation)
 expense_tracker = ExpenseTracker()
 
+# Add sample data for testing and demonstration
+def initialize_sample_data():
+    """Initialize sample data for testing and demonstration."""
+    try:
+        # Create sample groups
+        group1 = expense_tracker.create_group("Family Trip", "Summer vacation expenses", "USD")
+        group2 = expense_tracker.create_group("Office Lunch", "Weekly team lunch expenses", "USD")
+        
+        # Add users to Family Trip
+        user1 = expense_tracker.add_user_to_group(group1.id, "Alice Johnson", "alice@example.com")
+        user2 = expense_tracker.add_user_to_group(group1.id, "Bob Smith", "bob@example.com")
+        user3 = expense_tracker.add_user_to_group(group1.id, "Carol Davis", "carol@example.com")
+        
+        # Add users to Office Lunch
+        user4 = expense_tracker.add_user_to_group(group2.id, "David Wilson", "david@example.com")
+        user5 = expense_tracker.add_user_to_group(group2.id, "Eva Brown", "eva@example.com")
+        
+        # Add some expenses to Family Trip
+        expense_tracker.add_expense_equal_split(
+            group1.id, 300.00, "Hotel Booking", 
+            user1.id, [user1.id, user2.id, user3.id]
+        )
+        
+        expense_tracker.add_expense_exact_split(
+            group1.id, 150.00, "Gas and Tolls",
+            user2.id, {user1.id: 50.00, user2.id: 60.00, user3.id: 40.00}
+        )
+        
+        expense_tracker.add_expense_percentage_split(
+            group1.id, 240.00, "Restaurant Dinner",
+            user3.id, {user1.id: 40.0, user2.id: 35.0, user3.id: 25.0}
+        )
+        
+        # Add expenses to Office Lunch
+        expense_tracker.add_expense_equal_split(
+            group2.id, 85.00, "Pizza Lunch",
+            user4.id, [user4.id, user5.id]
+        )
+        
+        logging.info("Sample data initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing sample data: {e}")
+
+# Initialize sample data
+initialize_sample_data()
+
 
 @app.route('/')
 def index():

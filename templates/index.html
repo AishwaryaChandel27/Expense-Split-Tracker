@@ -146,7 +146,13 @@
                 <div class="col-md-3 col-sm-6 mb-3">
                     <div class="card text-center">
                         <div class="card-body">
-                            <h4 class="text-warning">{{ groups|map(attribute='expenses')|map(attribute='values')|map('length')|sum }}</h4>
+                            <h4 class="text-warning">
+                                {% set total_count = 0 %}
+                                {% for group in groups %}
+                                    {% set total_count = total_count + group.expenses.values()|length %}
+                                {% endfor %}
+                                {{ total_count }}
+                            </h4>
                             <p class="text-muted mb-0">Total Expenses</p>
                         </div>
                     </div>
